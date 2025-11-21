@@ -196,7 +196,6 @@ def getTypeSize(value_type):
 # scan method #
 
 def printResults(results):
-    print(Fore.CYAN + f"\nFound {len(results)} addresses:\n")
     for i, addr in enumerate(list(results.keys())[:50]):
         print(f"{i+1}. {hex(addr)} -> {results[addr]}")
     if len(results) > 50:
@@ -451,7 +450,7 @@ def main():
             editAddress(pm, addr, newVal, valueType)
         
         elif choice == "4":
-            filename = input("Enter filename to save results (default: scan_results.json):\n> ").strip()
+            filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
             if not filename:
                 filename = "scan_results.json"
             elif not filename.lower().endswith(".json"):
