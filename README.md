@@ -33,3 +33,6 @@ Select scan type and value type.
 Perform initial scans and optionally refine results with next-scan options.
 
 Edit memory addresses or save results as JSON.
+
+
+p.s I am currently working on a massive update for this program. Hint = Pointer scanner.
