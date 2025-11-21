@@ -15,14 +15,18 @@ init(autoreset=True)
 
 
 def printLogo():
-    print(" ________  ________  ________  ________                ___  ___  ________     ___    ___ ")
-    print("|\\   __  \\|\\   __  \\|\\   __  \\|\\   ____               |\\  \\|\\  \\|\\   __  \\   |\\  \\  /  /|")
-    print("\\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\___|              \\ \\  \\\\\\  \\ \\  \\|\\  \\  \\ \\  \\/  / /")
-    print(" \\ \\   ____\\ \\   _  _\\ \\  \\\\\\  \\ \\  \\                  \\ \\   __  \\ \\   __  \\  \\ \\    / / ")
-    print("  \\ \\  \\___|\\ \\  \\\\  \\\\ \\  \\\\\\  \\ \\  \\____              \\ \\  \\ \\  \\ \\  \\ \\  \\  /     \\/  ")
-    print("   \\ \\__\\    \\ \\__\\\\ _\\\\ \\_______\\ \\_______              \\ \\__\\ \\__\\ \\__\\ \\__\\/  /\\   \\  ")
-    print("    \\|__|     \\|__|\\|__|\\|_______|\\|_______| ============ \\|__|\\|__|\\|__|\\|__/__/ /\\ __\\ ")
-    print("                                                                             |__|/ \\|__| ")
+    logo = r"""
+     (    (        )                     )             ) 
+     )\ ) )\ )  ( /(    (             ( /(   (      ( /( 
+    (()/((()/(  )\())   )\            )\())  )\     )\())
+     /(_))/(_))((_)\  (((_)          ((_)\((((_)(  ((_)\ 
+    (_)) (_))    ((_) )\___           _((_))\ _ )\ __((_)
+    | _ \| _ \  / _ \((/ __|         | || |(_)_\(_)\ \/ /
+    |  _/|   / | (_) || (__          | __ | / _ \   >  < 
+    |_|  |_|_\  \___/  \___|  _____  |_||_|/_/ \_\ /_/\_\
+                             |_____|                     
+    """
+    print(Fore.MAGENTA + logo)
     print("\n     -Made By Fd4wg :)")
     print("\n \n")
 
@@ -196,6 +200,7 @@ def getTypeSize(value_type):
 # scan method #
 
 def printResults(results):
+    print("\n")
     for i, addr in enumerate(list(results.keys())[:50]):
         print(f"{i+1}. {hex(addr)} -> {results[addr]}")
     if len(results) > 50:
@@ -260,7 +265,7 @@ def firstScan(pm, value, value_type, scanType):
     }
 
     total_size = sum(length for base, length in regions)
-    pbar = tqdm(total=total_size, desc="Scanning memory", ncols=80)
+    pbar = tqdm(total=total_size, desc="Scanning memory", ncols=None)
 
     for base, length in regions:
         CHUNK = 0x2000000  # 32MB
