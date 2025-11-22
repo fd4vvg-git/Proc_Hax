@@ -475,7 +475,7 @@ def main():
                 value = input("\nEnter min,max value:\n> ")
             if not scannedOnce and scanType == "5":
                 value = ""
-            else:    
+            if not scanType == "4" and not scanType == "5":    
                 value = input("\nEnter value(s):\n> ")
 
             results = firstScan(pm, value, valueType, scanType)
@@ -551,4 +551,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
