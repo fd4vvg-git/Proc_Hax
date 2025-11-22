@@ -43,7 +43,7 @@ def getProcess(prompt="Enter process name (e.g. myApp.exe) or PID:\n> "):
             pid = int(user_input)
             try:
                 proc = psutil.Process(pid)
-                print(Fore.GREEN + f"\n[+] Attached to process: {proc.name()} (PID: {proc.pid})")
+                print(Fore.GREEN + f"\n[+] Proc_Hax Hooked to process: {proc.name()} (PID: {proc.pid})")
                 # Return a Pymem object
                 pm = pymem.Pymem(proc.pid)
                 return pm
@@ -66,6 +66,7 @@ def getProcess(prompt="Enter process name (e.g. myApp.exe) or PID:\n> "):
                 continue
 
         print(Fore.RED + "No such process available. Retry.\n")
+
 
 
                 
@@ -123,7 +124,8 @@ def userActionMenu():
     print("3. Edit Value at Address")
     print("4. Save Current Results to JSON")
     print("5. New Scan")
-    print("6. " + Fore.RED + "Exit PROC_HAX")
+    print("6. Change Hooked Process")
+    print("7. " + Fore.RED + "Exit PROC_HAX")
     return input("\n\n> ").strip()
 
 
@@ -411,63 +413,76 @@ def editAddress(pm, addr, value, value_type):
 #======================#
 
 
-
 def main():
+    
     printLogo()
     pm = getProcess()
     
     scannedOnce = False
     
-    scanType = scanTypeMenu()
-    valueType = valueTypeMenu()    
-    
-    if not scannedOnce and scanType == "4":
-        value = input("\nEnter min,max value:\n> ")
-    else:
-        value = input("\nEnter value(s):\n> ")
-
-    results = firstScan(pm, value, valueType, scanType)
-
-
     while True:
+    
+        if not scannedOnce:
+            
+            scanType = scanTypeMenu()
+            valueType = valueTypeMenu()    
+            
+            if not scannedOnce and scanType == "4":
+                value = input("\nEnter min,max value:\n> ")
+            if not scannedOnce and scanType == "5":
+                value = ""
+            else:    
+                value = input("\nEnter value(s):\n> ")
 
-        choice = userActionMenu()
+            results = firstScan(pm, value, valueType, scanType)
 
-        if choice == "1":  # next scan #
-            scannedOnce = True
-            scanType = nextScanMenu()
-            results = nextScan(pm, results, valueType, scanType)
-            printResults(results)
-            scanSummary(results)
-        
-        elif choice == "2": # hex view #
-            index = int(input("\nEnter address index number to view:\n> ")) - 1
-            addr = list(results.keys())[index]
-            raw = pm.read_bytes(int(addr), getTypeSize(valueType))
-            value = unpackValue(raw, valueType)
-            hex_str = " ".join(f"{b:02X}" for b in raw)
-            print(f"\n{Fore.CYAN}[INFO]Address {hex(addr)} contains (Hex: {hex_str})") 
 
-        elif choice == "3":  # edit value #
-            index = int(input("\nEnter address index number to edit:\n> ")) - 1
-            addr = list(results.keys())[index]
-            newVal = input("\nEnter new value: ")
-            editAddress(pm, addr, newVal, valueType)
-        
-        elif choice == "4":
-            filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
-            if not filename:
-                filename = "scan_results.json"
-            elif not filename.lower().endswith(".json"):
-                filename += ".json"
-            saveResultsToJson(results, filename)
-        
-        elif choice == "5":
-            main()
 
-        elif choice == "6":
-            print(Fore.GREEN + "Exiting.")
-            break
+
+            choice = userActionMenu()
+
+            if choice == "1":  # next scan #
+                scannedOnce = True
+                scanType = nextScanMenu()
+                results = nextScan(pm, results, valueType, scanType)
+                printResults(results)
+                scanSummary(results)
+            
+            elif choice == "2": # hex view #
+                index = int(input("\nEnter address index number to view:\n> ")) - 1
+                addr = list(results.keys())[index]
+                raw = pm.read_bytes(int(addr), getTypeSize(valueType))
+                value = unpackValue(raw, valueType)
+                hex_str = " ".join(f"{b:02X}" for b in raw)
+                print(f"\n{Fore.CYAN}[INFO]Address {hex(addr)} contains (Hex: {hex_str})") 
+
+            elif choice == "3":  # edit value #
+                index = int(input("\nEnter address index number to edit:\n> ")) - 1
+                addr = list(results.keys())[index]
+                newVal = input("\nEnter new value: ")
+                editAddress(pm, addr, newVal, valueType)
+            
+            elif choice == "4": # save results to json #
+                filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
+                if not filename:
+                    filename = "scan_results.json"
+                elif not filename.lower().endswith(".json"):
+                    filename += ".json"
+                saveResultsToJson(results, filename)
+            
+            elif choice == "5":
+                scannedOnce = False
+                results = {}
+
+            elif choice == "6":
+                print("\n")
+                pm = getProcess()
+                scannedOnce = False
+                results = {}
+            
+            elif choice == "7":
+                print(Fore.GREEN + "\nExiting.")
+                exit()
 
 
 if __name__ == "__main__":
