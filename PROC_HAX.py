@@ -122,10 +122,11 @@ def userActionMenu():
     print("1. Next Scan")
     print("2. View Address Value in Hex")
     print("3. Edit Value at Address")
-    print("4. Save Current Results to JSON")
-    print("5. New Scan")
-    print("6. Change Hooked Process")
-    print("7. " + Fore.RED + "Exit PROC_HAX")
+    print("4. View current results")
+    print("5. Save Current Results to JSON")
+    print("6. New Scan")
+    print("7. Change Hooked Process")
+    print("8. " + Fore.RED + "Exit PROC_HAX")
     return input("\n\n> ").strip()
 
 
@@ -199,14 +200,55 @@ def getTypeSize(value_type):
 
 
 
-# scan method #
+def paginateResults(results, page_size=10):
+    # Yield pages of addresses and values from results dict. #
+    addresses = list(results.keys())
+    total = len(addresses)
+    for start in range(0, total, page_size):
+        end = min(start + page_size, total)
+        yield addresses[start:end]
 
-def printResults(results):
-    print("\n")
-    for i, addr in enumerate(list(results.keys())[:50]):
-        print(f"{i+1}. {hex(addr)} -> {results[addr]}")
-    if len(results) > 50:
-        print(f"... and {len(results)-50} more addresses\n")
+def displayResults(results, page_size=10):
+    # Paginate and show memory addresses #
+    addresses = list(results.keys())
+    total = len(addresses)
+    if total == 0:
+        print(Fore.YELLOW + "\n[INFO] No results to display.\n")
+        return
+
+    pages = [addresses[i:i + page_size] for i in range(0, total, page_size)]
+    page_num = 0
+
+    while True:
+        print(f"\n{Fore.CYAN}[INFO] Showing page {page_num + 1}/{len(pages)}")
+        for i, addr in enumerate(pages[page_num]):
+            global_index = page_num * page_size + i  # Global index in results
+            print(f"{global_index + 1}. {hex(addr)} -> {results[addr]}")  # +1 for human-friendly index
+
+        cmd = input("\n'n' = next page, 'p' = previous, 'q' = quit:\n> ").strip().lower()
+        if cmd == 'n':
+            if page_num + 1 < len(pages):
+                page_num += 1
+            else:
+                print(Fore.YELLOW + "[INFO] Already at last page.")
+        elif cmd == 'p':
+            if page_num > 0:
+                page_num -= 1
+            else:
+                print(Fore.YELLOW + "[INFO] Already at first page.")
+        elif cmd == 'q':
+            break
+            
+            if 0 <= idx < total:
+                addr = addresses[idx]
+                raw = pm.read_bytes(int(addr), getTypeSize(valueType))
+                hex_str = " ".join(f"{b:02X}" for b in raw)
+                print(f"\n{Fore.CYAN}[INFO] Address {hex(addr)} contains (Hex: {hex_str})")
+            else:
+                print(Fore.RED + "[ERROR] Index out of range.")
+        else:
+            print(Fore.YELLOW + "[INFO] Unknown command.")
+
             
             
 def scanSummary(results):
@@ -227,6 +269,8 @@ def saveResultsToJson(results, filename):
     with open(filename, "w") as f:
         json.dump(json_data, f, indent=4)
     print(f"\n{Fore.CYAN}[INFO] Current results saved to {filename}{Style.RESET_ALL}")
+
+# scan method #
 
 def firstScan(pm, value, value_type, scanType):
     print("\nPerforming first memory scan...")
@@ -313,7 +357,7 @@ def firstScan(pm, value, value_type, scanType):
 
 
     pbar.close()
-    printResults(results)
+    displayResults(results)
     scanSummary(results)
     return results
     
@@ -417,7 +461,6 @@ def main():
     
     printLogo()
     pm = getProcess()
-    
     scannedOnce = False
     
     while True:
@@ -435,54 +478,74 @@ def main():
                 value = input("\nEnter value(s):\n> ")
 
             results = firstScan(pm, value, valueType, scanType)
+            scannedOnce = True
 
 
-
-
-            choice = userActionMenu()
-
-            if choice == "1":  # next scan #
-                scannedOnce = True
-                scanType = nextScanMenu()
-                results = nextScan(pm, results, valueType, scanType)
-                printResults(results)
-                scanSummary(results)
             
-            elif choice == "2": # hex view #
-                index = int(input("\nEnter address index number to view:\n> ")) - 1
-                addr = list(results.keys())[index]
-                raw = pm.read_bytes(int(addr), getTypeSize(valueType))
-                value = unpackValue(raw, valueType)
-                hex_str = " ".join(f"{b:02X}" for b in raw)
-                print(f"\n{Fore.CYAN}[INFO]Address {hex(addr)} contains (Hex: {hex_str})") 
+            while scannedOnce:
+                 
+                choice = userActionMenu()
 
-            elif choice == "3":  # edit value #
-                index = int(input("\nEnter address index number to edit:\n> ")) - 1
-                addr = list(results.keys())[index]
-                newVal = input("\nEnter new value: ")
-                editAddress(pm, addr, newVal, valueType)
-            
-            elif choice == "4": # save results to json #
-                filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
-                if not filename:
-                    filename = "scan_results.json"
-                elif not filename.lower().endswith(".json"):
-                    filename += ".json"
-                saveResultsToJson(results, filename)
-            
-            elif choice == "5":
-                scannedOnce = False
-                results = {}
+                if choice == "1":  # Next scan #
+                    scanType = nextScanMenu()
+                    results = nextScan(pm, results, valueType, scanType)
+                    displayResults(results)
+                    scanSummary(results)
 
-            elif choice == "6":
-                print("\n")
-                pm = getProcess()
-                scannedOnce = False
-                results = {}
-            
-            elif choice == "7":
-                print(Fore.GREEN + "\nExiting.")
-                exit()
+                elif choice == "2":  # Hex view #
+                    try:
+                        index = int(input("\nEnter address index number to view:\n> ")) - 1
+                        addr_list = list(results.keys())
+                        if index < 0 or index >= len(addr_list):
+                            print(Fore.RED + "[ERROR] Invalid index.")
+                        else:
+                            addr = addr_list[index]
+                            size = getTypeSize(valueType)
+                            raw = pm.read_bytes(int(addr), size)
+                            value = unpackValue(raw, valueType)
+                            hex_str = " ".join(f"{b:02X}" for b in raw)
+                            print(f"\n{Fore.CYAN}[INFO] Address {hex(addr)} contains (Hex: {hex_str})")
+                    except Exception as e:
+                        print(Fore.RED + f"[ERROR] Could not read memory: {e}")
+
+
+                elif choice == "3":  # Edit value #
+                    try:
+                        index = int(input("\nEnter address index number to edit:\n> ")) - 1
+                        addr_list = list(results.keys())
+                        if index < 0 or index >= len(addr_list):
+                            print(Fore.RED + "[ERROR] Invalid index.")
+                            continue
+                        addr = addr_list[index]
+                        newVal = input("\nEnter new value: ")
+                        editAddress(pm, addr, newVal, valueType)
+                    except Exception as e:
+                        print(Fore.RED + f"[ERROR] Could not edit: {e}")
+
+                elif choice == "4":
+                    displayResults(results)
+                
+                elif choice == "5":  # Save to json #
+                    filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
+                    if not filename:
+                        filename = "scan_results.json"
+                    elif not filename.lower().endswith(".json"):
+                        filename += ".json"
+                    saveResultsToJson(results, filename)
+
+                elif choice == "6":
+                    scannedOnce = False
+                    results = {}
+
+                elif choice == "7":
+                    print("\n")
+                    pm = getProcess()
+                    scannedOnce = False
+                    results = {}
+                
+                elif choice == "8":
+                    print(Fore.GREEN + "\nExiting.")
+                    exit()
 
 
 if __name__ == "__main__":
