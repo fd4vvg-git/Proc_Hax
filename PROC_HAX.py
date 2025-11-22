@@ -9,6 +9,7 @@ import math
 import json
 from colorama import init, Fore, Style
 from tqdm import tqdm
+import re
 
 init(autoreset=True)
 
@@ -550,3 +551,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
