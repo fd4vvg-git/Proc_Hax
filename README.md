@@ -40,6 +40,8 @@ Incremental Scans: Refine scan results with options like increased, decreased, c
 
 Memory Editing: Edit values directly in memory with immediate feedback, including hexadecimal view.
 
+Pointer Scanning: Check memory addresses that contain pointers to other addresses with precision.
+
 Results Management: Save scan results to JSON for later analysis.
 
 Memory Enumeration: Automatically enumerates accessible memory regions for scanning.
@@ -56,5 +58,3 @@ Perform initial scans and optionally refine results with next-scan options.
 
 Edit memory addresses or save results as JSON.
 
-
-p.s I am currently working on a massive update for this program. Hint = Pointer scanner.
