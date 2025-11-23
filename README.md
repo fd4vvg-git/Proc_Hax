@@ -26,7 +26,7 @@ Description:
 
 
 
-Proc_Hax is a Python-based memory scanner and editor for Windows processes. It allows users to hook to running processes, scan memory for specific values, and edit them in real-time. The tool is designed for debugging, memory exploration, and experimenting with live application data. I managed to make this as efficient as possible without re-writing in c++ ;). (I will find a way to use python for everything.)
+Proc_Hax is a Python-based memory scanner and editor for Windows processes. It allows users to hook to running processes, scan memory for specific values, and edit them in real-time. The tool is designed for debugging, memory exploration, and experimenting with live application data. I managed to make this as efficient as possible without re-writing in c++ ;). (I will find a way to use python for everything).
 
 Features
 
