@@ -7,6 +7,15 @@
 
 I started playing around with cheat engine inside games, and wanted to make my own process memory editor.
 
+DISCLAIMER:
+
+This software is provided for lawful, ethical, and educational purposes only.
+The developer does not endorse, support, or encourage any illegal, harmful, or malicious use of this software.
+
+By using this software, you agree that you are solely responsible for complying with all applicable laws, regulations, and policies. The developer assumes no liability for any misuse, damage, loss, or legal consequences arising from the use of this software.
+
+This software is provided “as is,” without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the developer be held liable for any claim, damages, or other liability arising from or in connection with the software or its use.
+
 description:
 
 PROC_HAX
