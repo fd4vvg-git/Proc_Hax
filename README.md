@@ -9,12 +9,18 @@ I started playing around with cheat engine inside games, and wanted to make my o
 
 DISCLAIMER:
 
-This software is provided for lawful, ethical, and educational purposes only.
-The developer does not endorse, support, or encourage any illegal, harmful, or malicious use of this software.
+Proc_Hax is a general-purpose memory editing tool intended solely for lawful research, debugging, educational use, and authorized testing.
+The developer of Proc_Hax does not endorse, support, or encourage using this software for cheating, unauthorized access, exploitation, or any other illegal or unethical activity.
 
-By using this software, you agree that you are solely responsible for complying with all applicable laws, regulations, and policies. The developer assumes no liability for any misuse, damage, loss, or legal consequences arising from the use of this software.
+By downloading, compiling, or using Proc_Hax, you agree that:
 
-This software is provided “as is,” without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the developer be held liable for any claim, damages, or other liability arising from or in connection with the software or its use.
+1.You are fully responsible for ensuring your use complies with all applicable laws, regulations, terms of service, and licensing agreements.
+
+2.You obtain all necessary permissions before interacting with any software, process, or system using Proc_Hax.
+
+3.The developer assumes no liability for any misuse, damages, violations, or legal consequences arising from the use of this tool.
+
+Proc_Hax is distributed under the MIT License and is provided “as is,” without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the developer be liable for any claim, damages, or other liability arising from, out of, or in connection with Proc_Hax or its use.
 
 description:
 
