@@ -22,11 +22,11 @@ By downloading, compiling, or using Proc_Hax, you agree that:
 
 Proc_Hax is distributed under the MIT License and is provided “as is,” without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the developer be liable for any claim, damages, or other liability arising from, out of, or in connection with Proc_Hax or its use.
 
-description:
+Description:
 
-PROC_HAX
 
-PROC_HAX is a Python-based memory scanner and editor for Windows processes. It allows users to hook to running processes, scan memory for specific values, and edit them in real-time. The tool is designed for debugging, memory exploration, and experimenting with live application data. I managed to make this as efficient as possible without re-writing in c++ ;). (I will find a way to use python for everything.)
+
+Proc_Hax is a Python-based memory scanner and editor for Windows processes. It allows users to hook to running processes, scan memory for specific values, and edit them in real-time. The tool is designed for debugging, memory exploration, and experimenting with live application data. I managed to make this as efficient as possible without re-writing in c++ ;). (I will find a way to use python for everything.)
 
 Features
 
