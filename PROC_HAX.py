@@ -80,6 +80,7 @@ def scanTypeMenu():
     print("3. Smaller than 'x'")
     print("4. Value between 'x,y'")
     print("5. Unknown Value")
+    print("6. Specific Address")
     choice = input("\n\n> ").strip()
     return choice
     
@@ -305,7 +306,52 @@ def parseUserValue(value_str, value_type):
     raise ValueError("Unsupported type in parseUserValue()")
 
 
-# scan funcs including 3 scan methods #
+# scan funcs including 4 scan methods #
+
+def directAddressAccess(pm):
+    print("\nEnter the memory address you want to inspect/edit:")
+    addr_str = input("> ").strip()
+
+    try:
+        addr = int(addr_str, 16)  # support 0x1234 or 1234 #
+    except ValueError:
+        print(Fore.RED + "[ERROR] Invalid address")
+        return
+
+    print(Fore.GREEN + f"[OK] Selected address: {hex(addr)}\n")
+
+    # ask user how many bytes to read (default 4) #
+    length_input = input("Enter number of bytes to read (default 4): ").strip()
+    length = int(length_input) if length_input else 4
+
+    try:
+        raw = pm.read_bytes(addr, length)
+    except Exception as e:
+        print(Fore.RED + f"[ERROR] Cannot read address {hex(addr)}: {e}")
+        return
+
+    hex_value = " ".join(f"{b:02X}" for b in raw)
+    print(Fore.CYAN + f"[INFO] Memory at {hex(addr)}: {hex_value} (length: {length} bytes)")
+
+    while True:
+        choice = input("\nEnter new hex value to overwrite, or 'q' to quit:\n> ").strip().lower()
+        if choice == 'q':
+            break
+        hex_clean = choice.replace(" ", "")
+        if len(hex_clean) != length * 2:
+            print(Fore.YELLOW + f"[WARN] You must enter exactly {length*2} hex characters ({length} bytes).")
+            continue
+        try:
+            data = bytes.fromhex(hex_clean)
+            pm.write_bytes(addr, data, length)
+            print(Fore.GREEN + f"[OK] Memory at {hex(addr)} updated to: {choice.upper()}")
+        except Exception as e:
+            print(Fore.RED + f"[ERROR] Could not write memory: {e}")
+
+    print(Fore.GREEN + "\nReturning to scan type menu...\n")
+
+
+
 
 def firstScan(pm, value, value_type, scanType):
     
@@ -709,8 +755,10 @@ def main():
     while True:
     
         if not scannedOnce:
-            
             scanType = scanTypeMenu()
+            if scanType == "6":
+                directAddressAccess(pm)
+                continue
             valueType = valueTypeMenu()    
             
             if not scannedOnce and scanType == "4":
@@ -719,6 +767,7 @@ def main():
                 value = ""
             if not scanType == "4" and not scanType == "5":    
                 value = input("\nEnter value(s):\n> ")
+            
 
             results = firstScan(pm, value, valueType, scanType)
             scannedOnce = True
