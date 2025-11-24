@@ -469,7 +469,7 @@ def pointerScanMenu(pm, results):
     
     print("\nPointer Scan Parmameters:\n")
     max_depth = int(input("Max pointer depth (e.g., 5):\n> "))
-    raw = input("\nMax offdet range (default 4096):\n> ").strip()
+    raw = input("\nMax offset range (default 4096):\n> ").strip()
     ptr_range = int(raw) if raw else 4096
     
     print(Fore.GREEN + f"\n[+] Starting Pointer Scan for {hex(target)}...\n")
@@ -693,3 +693,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
