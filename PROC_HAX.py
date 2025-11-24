@@ -88,7 +88,7 @@ def scanTypeMenu():
 
 def valueTypeMenu():
     print(Fore.CYAN + "\nSelect Value Type:\n")
-    print("1. Binary")
+    print("1. Raw Hex")
     print("2. Byte")
     print("3. 2 Bytes")
     print("4. 4 Bytes")
@@ -122,12 +122,13 @@ def userActionMenu():
     print("1. Next Scan")
     print("2. View Address Value in Hex")
     print("3. Edit Value at Address")
-    print("4. View Current Results")
-    print("5. Pointer Scan Selected Address")
-    print("6. Save Current Results to JSON")
-    print("7. New Scan")
-    print("8. Change Hooked Process")
-    print("9. " + Fore.RED + "Exit PROC_HAX")
+    print("4. Edit Value as Raw Hex")
+    print("5. View Current Results")
+    print("6. Pointer Scan Selected Address")
+    print("7. Save Current Results to JSON")
+    print("8. New Scan")
+    print("9. Change Hooked Process")
+    print("10. " + Fore.RED + "Exit PROC_HAX")
     return input("\n\n> ").strip()
 
 
@@ -169,7 +170,12 @@ def getMemoryRegions(pm):
 # byte packing #
 
 def packValue(value, value_type):
-    if value_type == "1": return struct.pack("?", bool(value))
+    if value_type == "1":  # HEX / AoB
+        try:
+            return bytes.fromhex(value)
+        except:
+            raise ValueError("Invalid hex input. Use formats like: 90 90 ?? FF")
+            
     if value_type == "2": return struct.pack("b", int(value))
     if value_type == "3": return struct.pack("h", int(value))
     if value_type == "4": return struct.pack("i", int(value))
@@ -182,7 +188,7 @@ def packValue(value, value_type):
 
 def unpackValue(data, value_type):
     try:
-        if value_type == "1": return struct.unpack("?", data)[0]
+        if value_type == "1": return " ".join(f"{b:02X}" for b in data)
         if value_type == "2": return struct.unpack("b", data)[0]
         if value_type == "3": return struct.unpack("h", data)[0]
         if value_type == "4": return struct.unpack("i", data)[0]
@@ -240,13 +246,6 @@ def displayResults(results, page_size=10):
         elif cmd == 'q':
             break
             
-            if 0 <= idx < total:
-                addr = addresses[idx]
-                raw = pm.read_bytes(int(addr), getTypeSize(valueType))
-                hex_str = " ".join(f"{b:02X}" for b in raw)
-                print(f"\n{Fore.CYAN}[INFO] Address {hex(addr)} contains (Hex: {hex_str})")
-            else:
-                print(Fore.RED + "[ERROR] Index out of range.")
         else:
             print(Fore.YELLOW + "[INFO] Unknown command.")
 
@@ -270,6 +269,34 @@ def saveResultsToJson(results, filename):
     with open(filename, "w") as f:
         json.dump(json_data, f, indent=4)
     print(f"\n{Fore.CYAN}[INFO] Current results saved to {filename}{Style.RESET_ALL}")
+   
+# check user input for edit #
+   
+def parseUserValue(value_str, value_type):
+
+    # HEX MODE (user types: "90 90 90", "FFA1BB34", etc.) #
+    if value_type.lower() == "hex":
+        cleaned = value_str.replace(" ", "")
+        if len(cleaned) % 2 != 0:
+            raise ValueError("Hex input must have an even number of characters.")
+        try:
+            return bytes.fromhex(cleaned)
+        except:
+            raise ValueError("Invalid hex string.")
+
+    # string type #
+    if value_type == "8":
+        return value_str.encode()
+
+    # numeric types #
+    if value_type in ["1","2","3","4","5"]:
+        return int(value_str)
+
+    if value_type in ["6","7"]:
+        return float(value_str)
+
+    raise ValueError("Unsupported type in parseUserValue()")
+
 
 # scan funcs including 3 scan methods #
 
@@ -515,7 +542,7 @@ def findPointersToAddress(pm, target_addr, regions, ptr_size):
     for base, length in tqdm(regions, desc="Searching pointers"):
         CHUNK = 0x2000000
         for o in range(0, length, CHUNK):
-            size = min(CHUNK, length, - o)
+            size = min(CHUNK, length - o)
             try:
                 data = pm.read_bytes(base + o, size)
             except:
@@ -553,15 +580,15 @@ def resolvePointerChains(pm, current_ptr, regions, ptr_size, depth_left, ptr_ran
     for new_ptr in pointer_candidates:
         sub_paths = resolvePointerChains(pm, new_ptr, regions, ptr_size, depth_left - 1, ptr_range)
     
-    for sp in sub_paths:
-        paths.append([new_ptr] + sp)
+        for sp in sub_paths:
+            paths.append([new_ptr] + sp)
         
     return paths
     
 # save pointer paths #
 
 def savePointerResults(paths, target):
-    filename = f"pointers_{hex(target)}.json".replace("0x, """)
+    filename = f"pointers_{hex(target)}.json".replace("0x", "")
     data = {}
     
     for i, path in enumerate(paths):
@@ -590,6 +617,20 @@ def editAddress(pm, addr, value, value_type):
         print(f"\n{Fore.GREEN}[EDIT] {hex(addr)}: {old_value} -> {value} ✅")
     except Exception as e:
         print(f"\n{Fore.RED}[ERROR] Could not edit {hex(addr)}: {e}")
+        
+def editRawHex(pm, addr, hex_str):
+    # remove spaces and convert to bytes #
+    hex_clean = hex_str.replace(" ", "")
+    if len(hex_clean) % 2 != 0:
+        print(Fore.RED + "[ERROR] Hex string must have even number of characters")
+        return
+    try:
+        data = bytes.fromhex(hex_clean)
+        pm.write_bytes(int(addr), data, len(data))
+        print(f"{Fore.GREEN}\n[HEX EDIT] {hex(addr)} -> {hex_str} ✅")
+    except Exception as e:
+        print(Fore.RED + f"[ERROR] Could not write hex: {e}")
+
 
 
 #======================#
@@ -662,13 +703,29 @@ def main():
                     except Exception as e:
                         print(Fore.RED + f"[ERROR] Could not edit: {e}")
 
-                elif choice == "4":
+                elif choice == "4":  # Raw hex edit
+                    try:
+                        index = int(input("\nEnter address index number to hex-edit:\n> ")) - 1
+                        addr_list = list(results.keys())
+                        if index < 0 or index >= len(addr_list):
+                            print(Fore.RED + "[ERROR] Invalid index.")
+                            continue
+                        addr = addr_list[index]
+                        newHex = input("\nEnter new hex bytes:\n> ")
+                        editRawHex(pm, addr, newHex)
+                    except Exception as e:
+                        print(Fore.RED + f"[ERROR] Could not hex-edit: {e}")
+
+
+
+                
+                elif choice == "5":
                     displayResults(results)
                 
-                elif choice == "5": # pointer scan #   
+                elif choice == "6": # pointer scan #   
                     pointerScanMenu(pm, results)
                 
-                elif choice == "6":  # Save to json #
+                elif choice == "7":  # Save to json #
                     filename = input("\nEnter filename to save results (default: scan_results.json):\n> ").strip()
                     if not filename:
                         filename = "scan_results.json"
@@ -676,17 +733,17 @@ def main():
                         filename += ".json"
                     saveResultsToJson(results, filename)
 
-                elif choice == "7":
+                elif choice == "8":
                     scannedOnce = False
                     results = {}
 
-                elif choice == "8":
+                elif choice == "9":
                     print("\n")
                     pm = getProcess()
                     scannedOnce = False
                     results = {}
                 
-                elif choice == "9":
+                elif choice == "10":
                     print(Fore.GREEN + "\nExiting.")
                     exit()
 
