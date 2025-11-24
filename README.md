@@ -56,5 +56,6 @@ Select scan type and value type.
 
 Perform initial scans and optionally refine results with next-scan options.
 
-Edit memory addresses or save results as JSON.
+Look for pointers to other memory addresses.
 
+Edit memory addresses or save results as JSON for further analysis.
