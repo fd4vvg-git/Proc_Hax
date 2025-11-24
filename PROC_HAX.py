@@ -166,7 +166,14 @@ def getMemoryRegions(pm):
         addr += mbi.RegionSize
 
     return regions
-    
+
+def regionContains(regions, addr):
+    for base, size in regions:
+        if base <= addr < base + size:
+            return True
+    return False
+
+
 # byte packing #
 
 def packValue(value, value_type):
@@ -464,20 +471,26 @@ def nextScan(pm, results, value_type, scanType):
 
 
 def getPointerSize(pm):
-    # detect process arcitecture #
     
-    try:
-        is_wow64 = ctypes.c_bool(False)
-        handle = pm.process_handle
-        k32.IsWow64Process(handle, ctypes.byref(is_wow64))
-        
-        if is_wow64.value:
+    is_wow64 = ctypes.c_long()
+    handle = pm.process_handle
+
+    # check if the process is running under Wow64 (32-bit on 64-bit Windows) #
+    if not k32.IsWow64Process(handle, ctypes.byref(is_wow64)):
+        # API failed
+        print(Fore.RED + "[ERROR] Could not detect process architecture, defaulting to 8 bytes")
+        return 8
+
+    if is_wow64.value:
+        # process is 32-bit #
+        return 4
+    else:
+        # check OS bitness #
+        if struct.calcsize("P") == 8:
+            return 8
+        else:
             return 4
-        
-        return 8
-     
-    except:
-        return 8
+
 
 def pointerScanMenu(pm, results):
     
@@ -511,7 +524,7 @@ def pointerScanMenu(pm, results):
     print(Fore.CYAN + f"\nPointer scan complete. Found {len(pointer_paths)} point paths.")
     
     if len(pointer_paths) > 0:
-        save = input("\nSave Pointer Paths to JSON?").lower()
+        save = input("\nSave Pointer Paths to JSON? (y/n):\n> ").lower()
         if save == "y":
             savePointerResults(pointer_paths, target)
 
@@ -520,15 +533,19 @@ def pointerScan(pm, target_addr, regions, ptr_size, max_depth, ptr_range):
     
     base_pointers = findPointersToAddress(pm, target_addr, regions, ptr_size)
     
+    target_int = int(target_addr)
+    print(Fore.YELLOW + f"[DEBUG] Found {len(base_pointers)} candidate pointers to {hex(target_int)}")
+    
     print(Fore. GREEN + f"\n[+] Found {len(base_pointers)} base pointers.\n")
     
     print(Fore.CYAN + "[INFO] Stage 2: Resolving full pointer chains...")
     
     all_paths = []
-    for ptr in tqdm(base_pointers, desc="Building pointer paths"):
-        paths = resolvePointerChains(pm, ptr, regions, ptr_size, max_depth -1 , ptr_range)
+    for ptr_addr in tqdm(base_pointers, desc="Building pointer paths"):
+        paths = resolvePointerChains(pm, ptr_addr, regions, ptr_size, max_depth, ptr_range)
         for p in paths:
-            all_paths.append([ptr] + p)
+            all_paths.append(p)
+
     return all_paths
     
 # find all memory locations where *(addr) == target_addr #
@@ -536,9 +553,7 @@ def pointerScan(pm, target_addr, regions, ptr_size, max_depth, ptr_range):
 def findPointersToAddress(pm, target_addr, regions, ptr_size):
     pointer_hits = []
     target_int = int(target_addr)  
-    target_bytes = target_int.to_bytes(ptr_size, "little")
 
-    
     for base, length in tqdm(regions, desc="Searching pointers"):
         CHUNK = 0x2000000
         for o in range(0, length, CHUNK):
@@ -547,62 +562,109 @@ def findPointersToAddress(pm, target_addr, regions, ptr_size):
                 data = pm.read_bytes(base + o, size)
             except:
                 continue
-            for i in range(0, size - ptr_size, ptr_size):
-                if data[i:i+ptr_size] == target_bytes:
+            # scan every byte
+            for i in range(0, len(data) - ptr_size + 1):
+                ptr_val = int.from_bytes(data[i:i+ptr_size], 'little')
+                if ptr_val == target_int:  # use target_int, not target_addr
                     pointer_hits.append(base + o + i)
+
     return pointer_hits
+
     
 # recursively build pointer chains #
 
-def resolvePointerChains(pm, current_ptr, regions, ptr_size, depth_left, ptr_range):
+def resolvePointerChains(pm, current_ptr_addr, regions, ptr_size, depth_left, ptr_range):
     paths = []
-    
+
+    # must point to valid region #
+    if not regionContains(regions, current_ptr_addr):
+        return []
+
     if depth_left <= 0:
         return [[]]
-    
+
+    # read pointer value stored at current_ptr_addr #
     try:
-        data = pm.read_bytes(current_ptr, ptr_size)
-        next_pointer_val = int.from_bytes(data, "little")
+        data = pm.read_bytes(current_ptr_addr, ptr_size)
+        next_val = int.from_bytes(data, "little")
     except:
         return []
-        
-    pointer_candidates = []
-    
+
+    valid_target = None
     for base, length in regions:
-        if base <= next_pointer_val <= base + length:
-            offset = next_pointer_val - base
-            if abs(offset) <= ptr_range:
-                pointer_candidates.append(next_pointer_val)
-                
-    if not pointer_candidates:
-        return [[]]
-        
-    for new_ptr in pointer_candidates:
-        sub_paths = resolvePointerChains(pm, new_ptr, regions, ptr_size, depth_left - 1, ptr_range)
-    
-        for sp in sub_paths:
-            paths.append([new_ptr] + sp)
-        
-    return paths
+        if base <= next_val < base + length:
+            valid_target = next_val
+            break
+
+    if valid_target is None:
+        return [[("VALUE", next_val)]]
+
+    # recursive search #
+    subpaths = resolvePointerChains(pm, valid_target, regions, ptr_size, depth_left - 1, ptr_range)
+
+    full_paths = []
+    for sp in subpaths:
+        # prepend the actual address containing the pointer #
+        full_paths.append([(current_ptr_addr, next_val)] + sp)
+
+    return full_paths
+
     
 # save pointer paths #
 
 def savePointerResults(paths, target):
     filename = f"pointers_{hex(target)}.json".replace("0x", "")
     data = {}
-    
+
     for i, path in enumerate(paths):
-        chain_hex = [hex(x) for x in path]
-        data[f"path_{i}"] = chain_hex
-        
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=4)
-            
-        print(Fore.GREEN + f"\n[+] Saved pointer results to {filename}")
+
+        formatted_path = []
+
+        for entry in path:
+
+            if isinstance(entry, tuple) and entry[0] == "VALUE":
+                formatted_path.append({
+                    "final_value": hex(entry[1])
+                })
+                continue
+
+            if isinstance(entry, tuple) and len(entry) == 2:
+                addr, val = entry
+
+                # ensure addr is int before hex() #
+                if isinstance(addr, int) and isinstance(val, int):
+                    formatted_path.append({
+                        "pointer_address": hex(addr),
+                        "points_to": hex(val)
+                    })
+                else:
+                    formatted_path.append({
+                        "pointer_address": str(addr),
+                        "points_to": str(val)
+                    })
+                continue
+
+            if isinstance(entry, int):
+                formatted_path.append({
+                    "value": hex(entry)
+                })
+                continue
+
+            # Fallback (string or unexpected type) #
+            formatted_path.append({
+                "unknown_entry": str(entry)
+            })
+
+        data[f"path_{i}"] = formatted_path
+
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=4)
+
+    print(Fore.GREEN + f"\n[+] Saved pointer results to {filename}")
+
+
                     
 
-    
-    
     
     
 # mem edit func #
