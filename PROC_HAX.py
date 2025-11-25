@@ -331,7 +331,7 @@ def directAddressAccess(pm):
         return
 
     hex_value = " ".join(f"{b:02X}" for b in raw)
-    print(Fore.CYAN + f"[INFO] Memory at {hex(addr)}: {hex_value} (length: {length} bytes)")
+    print(Fore.CYAN + f"\n[INFO] Memory at {hex(addr)}: {hex_value} (length: {length} bytes)")
 
     while True:
         choice = input("\nEnter new hex value to overwrite, or 'q' to quit:\n> ").strip().lower()
@@ -861,3 +861,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
