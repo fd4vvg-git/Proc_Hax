@@ -182,7 +182,7 @@ def packValue(value, value_type):
         try:
             return bytes.fromhex(value)
         except:
-            raise ValueError("Invalid hex input. Use formats like: 90 90 ?? FF")
+            raise ValueError(Fore.RED + "\n[ERROR] Invalid hex input. Use formats like: 90 90 ?? FF")
             
     if value_type == "2": return struct.pack("b", int(value))
     if value_type == "3": return struct.pack("h", int(value))
@@ -286,11 +286,11 @@ def parseUserValue(value_str, value_type):
     if value_type.lower() == "hex":
         cleaned = value_str.replace(" ", "")
         if len(cleaned) % 2 != 0:
-            raise ValueError("Hex input must have an even number of characters.")
+            raise ValueError(Fore.RED + "\n[ERROR] Hex input must have an even number of characters.")
         try:
             return bytes.fromhex(cleaned)
         except:
-            raise ValueError("Invalid hex string.")
+            raise ValueError(Fore.RED + "\n[ERROR] Invalid hex string.")
 
     # string type #
     if value_type == "8":
@@ -303,7 +303,7 @@ def parseUserValue(value_str, value_type):
     if value_type in ["6","7"]:
         return float(value_str)
 
-    raise ValueError("Unsupported type in parseUserValue()")
+    raise ValueError(Fore.RED + "[ERROR] Unsupported type in parseUserValue()")
 
 
 # scan funcs including 4 scan methods #
@@ -315,19 +315,19 @@ def directAddressAccess(pm):
     try:
         addr = int(addr_str, 16)  # support 0x1234 or 1234 #
     except ValueError:
-        print(Fore.RED + "[ERROR] Invalid address")
+        print(Fore.RED + "\n[ERROR] Invalid address")
         return
 
-    print(Fore.GREEN + f"[OK] Selected address: {hex(addr)}\n")
+    print(Fore.GREEN + f"\n[+] Selected address: {hex(addr)}")
 
     # ask user how many bytes to read (default 4) #
-    length_input = input("Enter number of bytes to read (default 4): ").strip()
+    length_input = input("\nEnter number of bytes to read (default 4): ").strip()
     length = int(length_input) if length_input else 4
 
     try:
         raw = pm.read_bytes(addr, length)
     except Exception as e:
-        print(Fore.RED + f"[ERROR] Cannot read address {hex(addr)}: {e}")
+        print(Fore.RED + f"\n[ERROR] Cannot read address {hex(addr)}: {e}")
         return
 
     hex_value = " ".join(f"{b:02X}" for b in raw)
@@ -339,14 +339,14 @@ def directAddressAccess(pm):
             break
         hex_clean = choice.replace(" ", "")
         if len(hex_clean) != length * 2:
-            print(Fore.YELLOW + f"[WARN] You must enter exactly {length*2} hex characters ({length} bytes).")
+            print(Fore.YELLOW + f"\n[WARN] You must enter exactly {length*2} hex characters ({length} bytes).")
             continue
         try:
             data = bytes.fromhex(hex_clean)
             pm.write_bytes(addr, data, length)
-            print(Fore.GREEN + f"[OK] Memory at {hex(addr)} updated to: {choice.upper()}")
+            print(Fore.GREEN + f"\n[+] Memory at {hex(addr)} updated to: {choice.upper()}")
         except Exception as e:
-            print(Fore.RED + f"[ERROR] Could not write memory: {e}")
+            print(Fore.RED + f"\n[ERROR] Could not write memory: {e}")
 
     print(Fore.GREEN + "\nReturning to scan type menu...\n")
 
@@ -524,7 +524,7 @@ def getPointerSize(pm):
     # check if the process is running under Wow64 (32-bit on 64-bit Windows) #
     if not k32.IsWow64Process(handle, ctypes.byref(is_wow64)):
         # API failed
-        print(Fore.RED + "[ERROR] Could not detect process architecture, defaulting to 8 bytes")
+        print(Fore.RED + "\n[ERROR] Could not detect process architecture, defaulting to 8 bytes")
         return 8
 
     if is_wow64.value:
@@ -543,12 +543,12 @@ def pointerScanMenu(pm, results):
     try:
         index = int(input("\nEnter index of address to pointer scan:\n> ")) - 1
     except:
-        print(Fore.RED + "[ERROR] Invalid index.")
+        print(Fore.RED + "\n[ERROR] Invalid index.")
         return
     
     addr_list = list(results.keys())
     if index <0 or index>= len(addr_list):
-        print(Fore.RED + "[ERROR] Index out of range.")
+        print(Fore.RED + "\n[ERROR] Index out of range.")
         return
     
     target = addr_list[index]
@@ -730,14 +730,14 @@ def editRawHex(pm, addr, hex_str):
     # remove spaces and convert to bytes #
     hex_clean = hex_str.replace(" ", "")
     if len(hex_clean) % 2 != 0:
-        print(Fore.RED + "[ERROR] Hex string must have even number of characters")
+        print(Fore.RED + "\n[ERROR] Hex string must have even number of characters")
         return
     try:
         data = bytes.fromhex(hex_clean)
         pm.write_bytes(int(addr), data, len(data))
         print(f"{Fore.GREEN}\n[HEX EDIT] {hex(addr)} -> {hex_str} ✅")
     except Exception as e:
-        print(Fore.RED + f"[ERROR] Could not write hex: {e}")
+        print(Fore.RED + f"\n[ERROR] Could not write hex: {e}")
 
 
 
@@ -789,7 +789,7 @@ def main():
                         index = int(input("\nEnter address index number to view:\n> ")) - 1
                         addr_list = list(results.keys())
                         if index < 0 or index >= len(addr_list):
-                            print(Fore.RED + "[ERROR] Invalid index.")
+                            print(Fore.RED + "\n[ERROR] Invalid index.")
                         else:
                             addr = addr_list[index]
                             size = getTypeSize(valueType)
@@ -798,7 +798,7 @@ def main():
                             hex_str = " ".join(f"{b:02X}" for b in raw)
                             print(f"\n{Fore.CYAN}[INFO] Address {hex(addr)} contains (Hex: {hex_str})")
                     except Exception as e:
-                        print(Fore.RED + f"[ERROR] Could not read memory: {e}")
+                        print(Fore.RED + f"\n[ERROR] Could not read memory: {e}")
 
 
                 elif choice == "3":  # Edit value #
@@ -806,26 +806,26 @@ def main():
                         index = int(input("\nEnter address index number to edit:\n> ")) - 1
                         addr_list = list(results.keys())
                         if index < 0 or index >= len(addr_list):
-                            print(Fore.RED + "[ERROR] Invalid index.")
+                            print(Fore.RED + "\n[ERROR] Invalid index.")
                             continue
                         addr = addr_list[index]
                         newVal = input("\nEnter new value: ")
                         editAddress(pm, addr, newVal, valueType)
                     except Exception as e:
-                        print(Fore.RED + f"[ERROR] Could not edit: {e}")
+                        print(Fore.RED + f"\n[ERROR] Could not edit: {e}")
 
                 elif choice == "4":  # Raw hex edit
                     try:
                         index = int(input("\nEnter address index number to hex-edit:\n> ")) - 1
                         addr_list = list(results.keys())
                         if index < 0 or index >= len(addr_list):
-                            print(Fore.RED + "[ERROR] Invalid index.")
+                            print(Fore.RED + "\n[ERROR] Invalid index.")
                             continue
                         addr = addr_list[index]
                         newHex = input("\nEnter new hex bytes:\n> ")
                         editRawHex(pm, addr, newHex)
                     except Exception as e:
-                        print(Fore.RED + f"[ERROR] Could not hex-edit: {e}")
+                        print(Fore.RED + f"\n[ERROR] Could not hex-edit: {e}")
 
 
 
@@ -861,4 +861,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
