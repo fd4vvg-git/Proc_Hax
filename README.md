@@ -47,4 +47,4 @@ Edit memory addresses or save results as JSON for further analysis.
 
 DISCLAIMER:
 
-ProcHax is for educational use only.
+ProcHax was made for educational use only.
